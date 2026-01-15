@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Study Timer</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header class="header">
+      <h1>Study Timer</h1>
+      <button id="loginBtn" class="btn primary">Sign in</button>
+    </header>
+
+    <main class="timer-section">
+      <div id="clock" class="clock">00:00:00</div>
+      <div class="controls">
+        <button id="startBtn" class="btn">Start</button>
+        <button id="stopBtn" class="btn">Stop</button>
+      </div>
+      <div class="class-row">
+        <select id="classSelect">
+          <option value="">Select class</option>
+        </select>
+        <button id="manageClassesBtn" class="btn">Manage Classes</button>
+      </div>
+    </main>
+
+    <section class="stats-section">
+      <!-- First Row: Study Summary + Pie Chart -->
+      <div class="stats-row">
+        <div class="stat-box large">
+          <h3>Study Summary</h3>
+          <ul class="text-stats">
+            <li>Total Hours: <span id="statTotalHours">–</span></li>
+            <li>Top Class: <span id="statTopClass">–</span></li>
+            <li>Top Tag: <span id="statTopTag">–</span></li>
+            <li>Longest Session: <span id="statLongestSession">–</span></li>
+            <li>Average Session: <span id="statAverageSession">–</span></li>
+            <li>Last Class: <span id="statLastClass">–</span></li>
+            <li>Total Sessions: <span id="statTotalSessions">–</span></li>
+            <li>Shortest Session: <span id="statShortestSession">–</span></li>
+          </ul>
+
+          <div class="recent-sessions">
+            <h4>Recent Sessions</h4>
+            <div id="tasks" class="tasks-preview"></div>
+          </div>
+        </div>
+
+        <div class="stat-box pie-box">
+          <h3>Subject Breakup</h3>
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Second Row: Bar Chart + Line Chart -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <h3>Class Breakup</h3>
+          <canvas id="barChart"></canvas>
+        </div>
+        <div class="stat-box">
+          <h3>Cumulative Hours</h3>
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Third Row: Activity Calendar -->
+      <div class="stats-row full-row">
+        <div class="stat-box full">
+          <h3>Activity Calendar</h3>
+          <div class="calendar-container">
+            <div class="calendar-months" id="calendarMonths"></div>
+            <div class="calendar-body">
+              <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="classModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Class Presets</h2>
+        <input id="classNameInput" placeholder="Class name" />
+        <input id="classTagInput" placeholder="Tag" />
+        <button id="addClassBtn" class="btn primary">Add Class</button>
+        <div id="classList"></div>
+        <button id="closeModalBtn" class="btn">Close</button>
+      </div>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
