@@ -36,9 +36,7 @@ let pieChart = null;
 let barChart = null;
 let lineChart = null;
 
-// Calendar
-const calendarGrid = document.getElementById("calendarGrid");
-const calendarMonths = document.getElementById("calendarMonths");
+
 
 // ---------------- Auth ----------------
 loginBtn.onclick = () => {
@@ -48,12 +46,12 @@ loginBtn.onclick = () => {
 
 auth.onAuthStateChanged(user => {
   if (user) {
-    loginBtn.textContent = "Signed In";
-    loginBtn.disabled = true;
-    loadEntries();
+      loginBtn.textContent = "Signed In";
+      loginBtn.disabled = true;
+      loadEntries();
   } else {
-    loginBtn.textContent = "Sign in";
-    loginBtn.disabled = false;
+      loginBtn.textContent = "Sign in";
+      loginBtn.disabled = false;
   }
 });
 
@@ -73,7 +71,7 @@ startBtn.onclick = () => {
   if (!classSelect.value || interval) return;
   startTime = Date.now();
   interval = setInterval(() => {
-    clockEl.textContent = format(Date.now() - startTime);
+      clockEl.textContent = format(Date.now() - startTime);
   }, 1000);
 };
 
@@ -92,11 +90,11 @@ stopBtn.onclick = async () => {
   if (!user) return;
 
   await db.collection("entries").add({
-    uid: user.uid,
-    className: selectedClass.name,
-    tag: selectedClass.tag,
-    seconds: elapsedSeconds,
-    timestamp: new Date(),
+      uid: user.uid,
+      className: selectedClass.name,
+      tag: selectedClass.tag,
+      seconds: elapsedSeconds,
+      timestamp: new Date(),
   });
 
   loadEntries();
@@ -117,14 +115,14 @@ function loadClasses() {
   classList.innerHTML = "";
 
   classes.forEach((c, i) => {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = `${c.name} (${c.tag})`;
-    classSelect.appendChild(opt);
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `${c.name} (${c.tag})`;
+      classSelect.appendChild(opt);
 
-    const div = document.createElement("div");
-    div.innerHTML = `${c.name} (${c.tag}) <button onclick="deleteClass(${i})">✕</button>`;
-    classList.appendChild(div);
+      const div = document.createElement("div");
+      div.innerHTML = `${c.name} (${c.tag}) <button onclick="deleteClass(${i})">✕</button>`;
+      classList.appendChild(div);
   });
 }
 
@@ -154,17 +152,12 @@ loadClasses();
 // ---------------- Helpers ----------------
 function getTopKey(obj) {
   let max = 0, top = "—";
-  for (const k in obj) {
-    if (obj[k] > max) {
-      max = obj[k];
-      top = k;
-    }
-  }
+  for (const k in obj) if (obj[k] > max) { max = obj[k]; top = k; }
   return top;
 }
 
-// ✅ LOCAL DATE KEY (CRITICAL FIX)
-function toLocalDateKey(date) {
+// --- Local date key helper ---
+function getLocalDateKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -177,10 +170,11 @@ async function loadEntries() {
   if (!user) return;
 
   const snapshot = await db
-    .collection("entries")
-    .where("uid", "==", user.uid)
-    .orderBy("timestamp", "desc")
-    .get();
+      .collection("entries")
+      .where("uid", "==", user.uid)
+      .orderBy("timestamp", "desc")
+      .limit(100)
+      .get();
 
   tasksDiv.innerHTML = "";
 
@@ -194,24 +188,26 @@ async function loadEntries() {
   let cumulative = 0;
   const cumulativeData = [];
 
-  snapshot.forEach((doc, i) => {
-    const e = doc.data();
-    const d = e.timestamp.toDate();
+  const entries = snapshot.docs.map(doc => doc.data());
 
-    tasksDiv.innerHTML += `<div>${d.toLocaleString()} — ${e.className} (${e.tag}): ${(e.seconds / 3600).toFixed(2)}h</div>`;
+  entries.slice(0, 7).forEach(e => {
+      const d = e.timestamp.toDate();
+      tasksDiv.innerHTML += `<div>${d.toLocaleString()} — ${e.className} (${e.tag}): ${(e.seconds / 3600).toFixed(2)}h</div>`;
+  });
 
-    totalSeconds += e.seconds;
-    count++;
-    longest = Math.max(longest, e.seconds);
-    shortest = Math.min(shortest, e.seconds);
+  entries.forEach((e, i) => {
+      totalSeconds += e.seconds;
+      count++;
+      longest = Math.max(longest, e.seconds);
+      shortest = Math.min(shortest, e.seconds);
 
-    tagTotals[e.tag] = (tagTotals[e.tag] || 0) + e.seconds;
-    classTotals[e.className] = (classTotals[e.className] || 0) + e.seconds;
+      tagTotals[e.tag] = (tagTotals[e.tag] || 0) + e.seconds;
+      classTotals[e.className] = (classTotals[e.className] || 0) + e.seconds;
 
-    if (i === 0) lastClass = e.className;
+      if (i === 0) lastClass = e.className;
 
-    cumulative += e.seconds;
-    cumulativeData.push(cumulative / 3600);
+      cumulative += e.seconds;
+      cumulativeData.push(cumulative / 3600);
   });
 
   statTotalHours.textContent = (totalSeconds / 3600).toFixed(2);
@@ -221,157 +217,280 @@ async function loadEntries() {
   statAverageSession.textContent = `${(totalSeconds / count / 3600).toFixed(2)}h`;
   statLastClass.textContent = lastClass;
 
+  const summaryList = document.querySelector(".text-stats");
+  if (!document.getElementById("statTotalSessions")) {
+      const li1 = document.createElement("li");
+      li1.innerHTML = `Total Sessions: <span id="statTotalSessions">${count}</span>`;
+      summaryList.appendChild(li1);
+
+      const li2 = document.createElement("li");
+      li2.innerHTML = `Shortest Session: <span id="statShortestSession">${(shortest / 3600).toFixed(2)}h</span>`;
+      summaryList.appendChild(li2);
+  } else {
+      document.getElementById("statTotalSessions").textContent = count;
+      document.getElementById("statShortestSession").textContent = (shortest / 3600).toFixed(2);
+  }
+
   renderPieChart(tagTotals);
   renderBarChart(classTotals);
   renderLineChart(cumulativeData);
 
-  const entries = snapshot.docs.map(doc => doc.data());
   updateCalendarHeatMap(entries);
 }
 
 // ---------------- Charts ----------------
+Chart.defaults.color = "#9ca3af";
+Chart.defaults.font.family =
+  'system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif';
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.tooltip.backgroundColor = "#111218";
+Chart.defaults.plugins.tooltip.borderWidth = 0;
+Chart.defaults.plugins.tooltip.titleColor = "#e5e7eb";
+Chart.defaults.plugins.tooltip.bodyColor = "#c7c7d1";
+Chart.defaults.plugins.tooltip.padding = 8;
+
+// Pie chart
 function renderPieChart(tagTotals) {
   const ctx = document.getElementById("pieChart");
   if (!ctx) return;
-  if (pieChart) pieChart.destroy();
+
+  const labels = Object.keys(tagTotals);
+  const data = Object.values(tagTotals).map(v => v / 3600);
+
+  if (pieChart) {
+      pieChart.data.labels = labels;
+      pieChart.data.datasets[0].data = data;
+      pieChart.update();
+      return;
+  }
 
   pieChart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: Object.keys(tagTotals),
-      datasets: [{
-        data: Object.values(tagTotals).map(v => v / 3600),
-        backgroundColor: ["#64748b", "#475569", "#334155", "#1e293b"],
-        borderWidth: 0,
-      }],
-    },
-    options: {
-      plugins: { legend: { position: "bottom", labels: { color: "#cbd5e1" } } }
-    },
+      type: "pie",
+      data: {
+          labels,
+          datasets: [{
+              data,
+              backgroundColor: [
+                  "rgba(69, 178, 230,.45)",
+                  "rgba(69, 77, 230.45)",
+                  "rgba(69, 129, 230.45)",
+                  "rgba(69, 229, 230.45)",
+                  "rgba(110, 64, 230.45)",
+              ],
+              borderWidth: 0,
+              hoverOffset: 6
+          }]
+      },
+      options: { plugins: { legend: { position: "bottom", labels: { color: "#9ca3af" } } } }
   });
 }
 
+// Bar chart (top 5 only)
 function renderBarChart(classTotals) {
   const ctx = document.getElementById("barChart");
   if (!ctx) return;
-  if (barChart) barChart.destroy();
 
   const sorted = Object.entries(classTotals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+  const labels = sorted.map(([name]) => name);
+  const data = sorted.map(([, seconds]) => seconds / 3600);
+
+  if (barChart) {
+      barChart.data.labels = labels;
+      barChart.data.datasets[0].data = data;
+      barChart.update();
+      return;
+  }
 
   barChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: sorted.map(e => e[0]),
-      datasets: [{
-        data: sorted.map(e => e[1] / 3600),
-        backgroundColor: "#475569",
-        borderWidth: 0,
-      }],
-    },
-    options: { plugins: { legend: { display: false } } },
+      type: "bar",
+      data: {
+          labels,
+          datasets: [{ data, backgroundColor: "rgba(69, 178, 230,.45)", borderWidth: 0, borderRadius: 6 }]
+      },
+      options: {
+          plugins: { legend: { display: false } },
+          scales: {
+              x: { grid: { display: false }, border: { display: false }, ticks: { color: "#6b7280" } },
+              y: { grid: { color: "rgba(255,255,255,.04)" }, border: { display: false }, ticks: { color: "#6b7280" } }
+          }
+      }
   });
 }
 
+// Line chart
 function renderLineChart(cumulativeData) {
   const ctx = document.getElementById("lineChart");
   if (!ctx) return;
-  if (lineChart) lineChart.destroy();
+
+  if (lineChart) {
+      lineChart.data.labels = cumulativeData.map((_, i) => i + 1);
+      lineChart.data.datasets[0].data = cumulativeData;
+      lineChart.update();
+      return;
+  }
 
   lineChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: cumulativeData.map((_, i) => i + 1),
-      datasets: [{
-        data: cumulativeData,
-        borderColor: "#64748b",
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: false,
-      }],
-    },
-    options: { plugins: { legend: { display: false } } },
-  });
-}
-
-// ---------------- Calendar Heatmap ----------------
-function generateCalendarGrid(days = 365) {
-  calendarGrid.innerHTML = "";
-
-  const today = new Date();
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - (days - 1));
-  const firstDayOfWeek = startDate.getDay();
-
-  const totalCols = Math.ceil((days + firstDayOfWeek) / 7);
-
-  for (let col = 0; col < totalCols; col++) {
-    for (let row = 0; row < 7; row++) {
-      const dayOffset = col * 7 + row - firstDayOfWeek;
-      const div = document.createElement("div");
-      div.classList.add("day");
-
-      if (dayOffset >= 0 && dayOffset < days) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + dayOffset);
-        div.dataset.date = toLocalDateKey(date);
-        div.title = `${date.toDateString()} — 0h`;
-      } else {
-        div.style.visibility = "hidden";
+      type: "line",
+      data: { labels: cumulativeData.map((_, i) => i + 1), datasets: [{ data: cumulativeData, borderColor: "rgba(69, 229, 230.45)", borderWidth: 2, tension: 0.35, pointRadius: 0, fill: false }] },
+      options: {
+          plugins: { legend: { display: false } },
+          scales: {
+              x: { grid: { display: false }, border: { display: false }, ticks: { color: "#6b7280" } },
+              y: { grid: { color: "rgba(255,255,255,.04)" }, border: { display: false }, ticks: { color: "#6b7280" } }
+          }
       }
-
-      calendarGrid.appendChild(div);
-    }
-  }
-
-  generateMonthLabels(startDate, days, firstDayOfWeek);
+  });
 }
 
+// ---------------- Calendar ----------------
+const calendarGrid = document.getElementById("calendarGrid");
+const calendarMonths = document.getElementById("calendarMonths");
+let calendarDays = []; // store divs for reuse
+
+// Calendar tooltip
+const calendarTooltip = document.createElement("div");
+calendarTooltip.style.position = "absolute";
+calendarTooltip.style.background = "#111218";
+calendarTooltip.style.color = "#fff";
+calendarTooltip.style.padding = "4px 8px";
+calendarTooltip.style.borderRadius = "4px";
+calendarTooltip.style.fontSize = "12px";
+calendarTooltip.style.pointerEvents = "none";
+calendarTooltip.style.opacity = "0";
+calendarTooltip.style.transition = "opacity 0.15s";
+calendarTooltip.style.zIndex = "1000";
+document.body.appendChild(calendarTooltip);
+
+// Helper: local YYYY-MM-DD key
+function getLocalDateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+// Convert hex to RGB
+function hexToRgb(hex) {
+    hex = hex.replace(/^#/, "");
+    if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+    const bigint = parseInt(hex, 16);
+    return [ (bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255 ];
+}
+
+// Lerp between two RGB colors
+function lerpColor(base, target, t) {
+    return base.map((v, i) => Math.round(v + (target[i] - v) * t));
+}
+
+// ---- Configurable colors ----
+const baseRGB = [31, 32, 42];       // dark square base
+const maxPinkHex = "#EA114F";       // max intensity overlay
+const maxPinkRGB = hexToRgb(maxPinkHex);
+
+// Generate calendar grid
+function generateCalendarGrid(days = 365) {
+    if (calendarDays.length) return;
+
+    calendarGrid.innerHTML = "";
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - (days - 1));
+    const firstDayOfWeek = startDate.getDay();
+    const totalCols = Math.ceil((days + firstDayOfWeek) / 7);
+
+    for (let col = 0; col < totalCols; col++) {
+        for (let row = 0; row < 7; row++) {
+            const dayOffset = col * 7 + row - firstDayOfWeek;
+            const div = document.createElement("div");
+            div.classList.add("day");
+
+            if (dayOffset >= 0 && dayOffset < days) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + dayOffset);
+                div.dataset.date = getLocalDateKey(date);
+                div.title = `${date.toDateString()} — 0h`;
+                div.style.backgroundColor = `rgb(${baseRGB.join(",")})`;
+            } else {
+                div.style.visibility = "hidden";
+            }
+
+            calendarDays.push(div);
+            calendarGrid.appendChild(div);
+        }
+    }
+
+    generateMonthLabels(startDate, days, firstDayOfWeek);
+    attachCalendarTooltips();
+}
+
+// Generate month labels
 function generateMonthLabels(startDate, days, firstDayOfWeek) {
-  calendarMonths.innerHTML = "";
-  let lastMonth = null;
+    calendarMonths.innerHTML = "";
+    let lastMonth = null;
+    const firstDay = new Date(startDate);
 
-  for (let i = 0; i < days; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    const month = date.toLocaleString("default", { month: "short" });
+    for (let i = 0; i < days; i++) {
+        const date = new Date(firstDay);
+        date.setDate(firstDay.getDate() + i);
+        const month = date.toLocaleString("default", { month: "short" });
 
-    if (month !== lastMonth) {
-      const col = Math.floor((i + firstDayOfWeek) / 7) + 1;
-      const div = document.createElement("div");
-      div.textContent = month;
-      div.style.gridColumnStart = col;
-      calendarMonths.appendChild(div);
-      lastMonth = month;
+        if (month !== lastMonth) {
+            const dayOffset = i + firstDayOfWeek;
+            const col = Math.floor(dayOffset / 7) + 1;
+            const div = document.createElement("div");
+            div.textContent = month;
+            div.style.gridColumnStart = col;
+            calendarMonths.appendChild(div);
+            lastMonth = month;
+        }
     }
-  }
 }
 
+// Update calendar heatmap
 function updateCalendarHeatMap(entries) {
-  const dayTotals = {};
+    const dayTotals = {};
+    entries.forEach(e => {
+        const day = getLocalDateKey(e.timestamp.toDate());
+        dayTotals[day] = (dayTotals[day] || 0) + e.seconds;
+    });
 
-  entries.forEach(e => {
-    const day = toLocalDateKey(e.timestamp.toDate());
-    dayTotals[day] = (dayTotals[day] || 0) + e.seconds;
-  });
+    const maxSeconds = Math.max(...Object.values(dayTotals), 0);
 
-  const maxSeconds = Math.max(...Object.values(dayTotals), 0);
+    calendarDays.forEach(div => {
+        const day = div.dataset.date;
+        if (!day) return;
 
-  document.querySelectorAll("#calendarGrid .day").forEach(div => {
-    const day = div.dataset.date;
-    if (!day) return;
+        const seconds = dayTotals[day] || 0;
+        const hours = (seconds / 3600).toFixed(2);
 
-    const seconds = dayTotals[day] || 0;
-    const hours = (seconds / 3600).toFixed(2);
-    div.title = `${new Date(day).toDateString()} — ${hours}h`;
+        const [y, m, d] = day.split("-");
+        const localDate = new Date(y, m - 1, d);
+        div.title = `${localDate.toDateString()} — ${hours}h`;
 
-    div.style.backgroundColor =
-      seconds === 0
-        ? "rgba(90,90,90,.1)"
-        : `rgba(100,116,139,${0.3 + 0.7 * (seconds / maxSeconds)})`;
-  });
+        // intensity 0 → 1
+        const t = maxSeconds > 0 ? seconds / maxSeconds : 0;
+        const rgb = lerpColor(baseRGB, maxPinkRGB, t);
+        div.style.backgroundColor = `rgb(${rgb.join(",")})`;
+    });
 }
 
-// ---------------- Init ----------------
+// Attach tooltips
+function attachCalendarTooltips() {
+    calendarDays.forEach(day => {
+        day.addEventListener("mousemove", e => {
+            calendarTooltip.textContent = day.title;
+            calendarTooltip.style.left = e.pageX + 10 + "px";
+            calendarTooltip.style.top = e.pageY + 10 + "px";
+            calendarTooltip.style.opacity = "1";
+        });
+        day.addEventListener("mouseleave", () => {
+            calendarTooltip.style.opacity = "0";
+        });
+    });
+}
+
+// Initialize calendar
 generateCalendarGrid(365);
