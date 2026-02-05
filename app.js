@@ -271,11 +271,11 @@ function renderPieChart(tagTotals) {
           datasets: [{
               data,
               backgroundColor: [
-                  "rgba(69, 178, 230,.45)",
-                  "rgba(69, 77, 230.45)",
-                  "rgba(69, 129, 230.45)",
-                  "rgba(69, 229, 230.45)",
-                  "rgba(110, 64, 230.45)",
+                  "rgba(69, 178, 230,0.45)",
+                  "rgba(69, 77, 230,0.45)",
+                  "rgba(69, 129, 230,0.45)",
+                  "rgba(69, 229, 230,0.45)",
+                  "rgba(110, 64, 230,0.45)",
               ],
               borderWidth: 0,
               hoverOffset: 6
