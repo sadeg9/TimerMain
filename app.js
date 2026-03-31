@@ -173,7 +173,6 @@ async function loadEntries() {
       .collection("entries")
       .where("uid", "==", user.uid)
       .orderBy("timestamp", "desc")
-      
       .get();
 
   tasksDiv.innerHTML = "";
